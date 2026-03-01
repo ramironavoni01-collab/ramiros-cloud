@@ -183,6 +183,7 @@ nav{width:252px;min-width:252px;background:var(--white);border-right:1px solid v
     <button class="nitem active" id="btn-home" onclick="showView('home',this)"><span class="ico">🏠</span> Home</button>
     <button class="nitem" id="btn-ai" onclick="showView('ai',this)"><span class="ico">🤖</span> Ask AI <span class="badge">NEW</span></button>
     <button class="nitem" id="btn-drive" onclick="showView('drive',this)"><span class="ico">📁</span> Google Drive</button>
+    <button class="nitem" id="btn-settings" onclick="showView('settings',this)"><span class="ico">⚙️</span> Configuración</button>
   </div>
   <div class="nav-section">
     <div class="nav-lbl">Subjects</div>
@@ -268,6 +269,7 @@ let subjects = JSON.parse(localStorage.getItem('sv2_subjects') || 'null') || [
 let driveConfig   = JSON.parse(localStorage.getItem('sv2_drive') || 'null');
 const OAUTH_CLIENT_ID = '979073035285-4sj1omts1sp5tk2n8vkp4bkn22gpam6c.apps.googleusercontent.com';
 const APP_ORIGIN = 'https://ramironavoni01-collab.github.io';
+let ANTHROPIC_KEY = localStorage.getItem('sv2_akey') || '';
 let oauthToken = localStorage.getItem('sv2_gtoken') || null;
 let currentView   = 'home';
 let currentSubjId = null;
@@ -307,7 +309,63 @@ function renderAll(){
   else if(currentView==='subject')    c.innerHTML = subjectHTML();
   else if(currentView==='notedetail') c.innerHTML = noteDetailHTML();
   else if(currentView==='ai'){         c.innerHTML = aiHTML(); initAI(); }
-  else if(currentView==='drive'){      c.innerHTML = driveHTML(); if(driveConfig) setTimeout(loadDriveFiles,80); }
+  else if(currentView==='drive'){      c.innerHTML = driveHTML(); if(oauthToken && driveConfig?.folderId) setTimeout(loadDriveFiles,80); }
+  else if(currentView==='settings'){   c.innerHTML = settingsHTML(); }
+
+  // Show API key prompt if missing and on a view that needs it
+  if(!ANTHROPIC_KEY && (currentView==='ai'||currentView==='drive')){
+    showApiKeyPrompt();
+  }
+}
+
+function settingsHTML(){
+  return `
+  <div class="page-title" style="margin-bottom:4px">Configuración ⚙️</div>
+  <div class="page-sub" style="margin-bottom:32px">Gestioná tus claves y preferencias.</div>
+  <div class="drive-setup" style="max-width:520px;margin:0">
+    <h2 style="font-size:1.2rem;margin-bottom:20px">🔑 Clave de API de Anthropic</h2>
+    <p style="font-size:.85rem;color:var(--muted);margin-bottom:16px;line-height:1.6">
+      Esta clave permite que la IA lea y organice tus notas. Se guarda <b>solo en tu navegador</b>, nunca en GitHub ni en ningún servidor.
+    </p>
+    <div class="cf">
+      <div>
+        <div class="cf-lbl">API Key</div>
+        <input class="cf-in" id="apiKeyInput" type="password" placeholder="sk-ant-api03-…" value="${ANTHROPIC_KEY}">
+        <div class="cf-hint">Conseguila en <a href="https://console.anthropic.com" target="_blank" style="color:var(--orange)">console.anthropic.com</a> → API Keys</div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:4px">
+        <button class="btn btn-dark" onclick="saveApiKey()">Guardar clave</button>
+        ${ANTHROPIC_KEY?`<button class="btn btn-ghost" onclick="deleteApiKey()">Eliminar clave</button>`:''}
+      </div>
+      <div id="apiKeyStatus" style="font-size:.8rem;margin-top:6px;color:var(--green)">${ANTHROPIC_KEY?'✓ Clave guardada':''}</div>
+    </div>
+  </div>`;
+}
+
+function saveApiKey(){
+  const key = document.getElementById('apiKeyInput')?.value.trim();
+  if(!key){toast('Pegá tu clave primero');return;}
+  ANTHROPIC_KEY = key;
+  localStorage.setItem('sv2_akey', key);
+  document.getElementById('apiKeyStatus').textContent = '✓ Clave guardada correctamente';
+  toast('✓ Clave guardada en tu navegador');
+}
+
+function deleteApiKey(){
+  ANTHROPIC_KEY='';
+  localStorage.removeItem('sv2_akey');
+  toast('Clave eliminada');
+  renderAll();
+}
+
+function showApiKeyPrompt(){
+  const existing = document.getElementById('apikeyBanner');
+  if(existing) return;
+  const banner = document.createElement('div');
+  banner.id = 'apikeyBanner';
+  banner.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--text);color:white;padding:14px 20px;border-radius:12px;font-size:.82rem;z-index:400;display:flex;align-items:center;gap:12px;box-shadow:0 8px 30px rgba(0,0,0,0.2)';
+  banner.innerHTML = `⚠️ Necesitás configurar tu clave de IA para usar esta función. <button onclick="showView('settings',document.getElementById('btn-settings'))" style="background:var(--orange);border:none;color:white;padding:6px 14px;border-radius:7px;cursor:pointer;font-family:Sora,sans-serif;font-weight:600;font-size:.8rem;margin-left:4px">Configurar →</button><button onclick="document.getElementById('apikeyBanner').remove()" style="background:none;border:none;color:white;cursor:pointer;font-size:1rem;padding:0 4px">✕</button>`;
+  document.body.appendChild(banner);
 }
 
 function renderNav(){
@@ -495,7 +553,7 @@ Cuando resumís, sé detallado y claro. Cuando encontrás info, citá las partes
 NOTAS DEL ESTUDIANTE:
 ${notesContext||'(Sin notas aún — decile al estudiante que agregue notas primero)'}`;
   try {
-    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':ANTHROPIC_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
       body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:sys,messages:chatHistory})});
     const d=await r.json();
     const reply=d.content?.[0]?.text||'Algo salió mal.';
@@ -730,7 +788,7 @@ async function importAll(){
 }
 
 async function aiCreateNote(text, fileName, subjectHint=''){
-  const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
+  const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':ANTHROPIC_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
     body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',
       content:`Sos un asistente organizador de notas para un estudiante de Ingeniería Industrial (UCA Buenos Aires, 5to año).
 
