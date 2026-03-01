@@ -622,40 +622,82 @@ function saveFolderId(){
   setTimeout(loadDriveFiles,200);
 }
 
+async function driveGet(q){
+  const r=await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name,mimeType,modifiedTime)&orderBy=name&pageSize=200`,
+    {headers:{Authorization:`Bearer ${oauthToken}`}});
+  const d=await r.json();
+  if(d.error){if(d.error.code===401){oauthToken=null;localStorage.removeItem('sv2_gtoken');renderAll();} throw new Error(d.error.message);}
+  return d.files||[];
+}
+
 async function loadDriveFiles(){
   const area=document.getElementById('driveArea'); if(!area||!oauthToken) return;
-  if(!driveConfig?.folderId){ area.innerHTML='<div class="empty"><div class="big">📂</div><p>Primero ingresá el ID de tu carpeta arriba.</p></div>'; return; }
+  if(!driveConfig?.folderId){area.innerHTML='<div class="empty"><div class="big">📂</div><p>Primero ingresá el ID de tu carpeta arriba.</p></div>';return;}
+  area.innerHTML='<div class="empty"><div class="big" style="font-size:2rem;opacity:1">⏳</div><p>Escaneando tu Drive… esto puede tardar unos segundos.</p></div>';
   try {
-    const folderId=driveConfig.folderId;
-    const r=await fetch(`https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+trashed=false&fields=files(id,name,mimeType,modifiedTime)&orderBy=name`,
-      {headers:{Authorization:`Bearer ${oauthToken}`}});
-    const d=await r.json();
-    if(d.error){ if(d.error.code===401){oauthToken=null;localStorage.removeItem('sv2_gtoken');renderAll();return;} throw new Error(d.error.message); }
-    const pdfs=d.files.filter(f=>f.mimeType==='application/pdf'||f.name.endsWith('.pdf'));
-    if(!pdfs.length){area.innerHTML='<div class="empty"><div class="big">📂</div><p>No se encontraron PDFs. Asegurate de exportar tus notas desde GoodNotes a esta carpeta.</p></div>';return;}
+    // Structure: GoodNotes > Cuatrimestre > Materia > PDFs
+    // We'll scan up to 3 levels deep and collect all PDFs with their folder path
+    const allFiles = []; // {id, name, mimeType, modifiedTime, path, subjectHint}
+
+    async function scanFolder(folderId, pathParts){
+      const items = await driveGet(`'${folderId}' in parents and trashed=false`);
+      for(const item of items){
+        if(item.mimeType==='application/vnd.google-apps.folder'){
+          if(pathParts.length < 3) await scanFolder(item.id, [...pathParts, item.name]);
+        } else if(item.mimeType==='application/pdf'||item.name.endsWith('.pdf')){
+          allFiles.push({...item, path:pathParts, subjectHint: pathParts[pathParts.length-1]||''});
+        }
+      }
+    }
+
+    await scanFolder(driveConfig.folderId, []);
+
+    if(!allFiles.length){
+      area.innerHTML='<div class="empty"><div class="big">📂</div><p>No se encontraron PDFs. Asegurate de que tus notas de GoodNotes están exportadas como PDF en esta carpeta.</p></div>';
+      return;
+    }
+
+    // Group by subject folder (last folder in path)
+    const bySubject = {};
+    for(const f of allFiles){
+      const subj = f.subjectHint || 'Sin carpeta';
+      if(!bySubject[subj]) bySubject[subj]=[];
+      bySubject[subj].push(f);
+    }
+
+    window._driveFiles = allFiles;
+
     area.innerHTML=`
-    <div class="sec-head"><span class="sec-title">${pdfs.length} PDF${pdfs.length!==1?'s':''} en tu carpeta de Drive</span><button class="btn btn-orange btn-sm" onclick="importAll()">🤖 Importar todos con IA</button></div>
-    <div class="drive-grid" id="driveGrid">
-      ${pdfs.map(f=>`<div class="drive-file" id="df-${f.id}">
-        <div class="df-ico">📄</div>
-        <div class="df-name">${f.name.replace(/\.pdf$/i,'')}</div>
-        <div class="df-meta">${fmtDate(f.modifiedTime)}</div>
-        <div class="df-acts">
-          <button class="btn btn-ghost btn-sm" style="flex:1" onclick="importOne('${f.id}','${f.name.replace(/'/g,"\\'")}','${f.id}')">🤖 Importar</button>
-          <a href="https://drive.google.com/file/d/${f.id}/view" target="_blank" class="btn btn-ghost btn-sm">👁</a>
+    <div class="sec-head" style="margin-bottom:20px">
+      <span class="sec-title">${allFiles.length} PDF${allFiles.length!==1?'s':''} encontrados en ${Object.keys(bySubject).length} carpetas</span>
+      <button class="btn btn-orange btn-sm" onclick="importAll()">🤖 Importar todos con IA</button>
+    </div>
+    ${Object.entries(bySubject).map(([subj,files])=>`
+      <div style="margin-bottom:28px">
+        <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:10px;display:flex;align-items:center;gap:8px">
+          📁 ${subj} <span style="font-weight:400">(${files.length} archivo${files.length!==1?'s':''})</span>
+        </div>
+        <div class="drive-grid">
+          ${files.map(f=>`<div class="drive-file" id="df-${f.id}">
+            <div class="df-ico">📄</div>
+            <div class="df-name">${f.name.replace(/\.pdf$/i,'')}</div>
+            <div class="df-meta">${f.path.join(' › ')}</div>
+            <div class="df-acts">
+              <button class="btn btn-orange btn-sm" style="flex:1" onclick="importOne('${f.id}','${f.name.replace(/'/g,"\\'")}','${f.id}','${subj.replace(/'/g,"\\'")}')">🤖 Importar</button>
+              <a href="https://drive.google.com/file/d/${f.id}/view" target="_blank" class="btn btn-ghost btn-sm">👁</a>
+            </div>
+          </div>`).join('')}
         </div>
       </div>`).join('')}
-    </div>
-    <p style="font-size:.78rem;color:var(--muted);margin-top:16px">La IA va a leer cada PDF y crear notas organizadas automáticamente. Los PDFs manuscritos (fotos) también funcionan pero con menos precisión.</p>`;
-    window._driveFiles = pdfs;
+    <p style="font-size:.78rem;color:var(--muted);margin-top:8px">💡 La IA lee cada PDF, extrae el contenido y crea notas organizadas automáticamente por materia.</p>`;
   } catch(e){
     area.innerHTML=`<div class="empty"><div class="big">⚠️</div><p>Error: ${e.message}<br><br><button class="btn btn-ghost btn-sm" onclick="driveConfig=null;localStorage.removeItem('sv2_drive');renderAll()">Reconfigurar Drive</button></p></div>`;
   }
 }
 
-async function importOne(fileId, fileName, cardId){
+async function importOne(fileId, fileName, cardId, subjectHint=''){
   const card=document.getElementById('df-'+cardId);
-  if(card) card.style.opacity='.5';
+  if(card){card.style.opacity='.5';card.querySelector('.btn')&&(card.querySelector('.btn').textContent='⏳ Leyendo…');}
   toast(`Leyendo ${fileName.replace(/\.pdf$/i,'')}…`);
   try {
     pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -670,8 +712,8 @@ async function importOne(fileId, fileName, cardId){
       txt+=tc.items.map(it=>it.str).join(' ')+'\n';
     }
     if(!txt.trim()) txt=`[PDF manuscrito: ${fileName}]`;
-    await aiCreateNote(txt, fileName);
-    if(card){card.style.opacity='1';card.style.background='#f0fff4';card.style.borderColor='var(--green)';}
+    await aiCreateNote(txt, fileName, subjectHint);
+    if(card){card.style.opacity='1';card.style.background='#f0fff4';card.style.borderColor='var(--green)';card.querySelector('.btn')&&(card.querySelector('.btn').textContent='✓ Importado');}
   } catch(e){ toast('⚠️ Error: '+e.message); if(card) card.style.opacity='1'; }
 }
 
@@ -687,20 +729,25 @@ async function importAll(){
   renderNav();
 }
 
-async function aiCreateNote(text, fileName){
+async function aiCreateNote(text, fileName, subjectHint=''){
   const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',
       content:`Sos un asistente organizador de notas para un estudiante de Ingeniería Industrial (UCA Buenos Aires, 5to año).
 
-Analizá el contenido de este PDF llamado "${fileName}" y devolvé SOLO un JSON válido (sin markdown, sin explicación):
-{"title":"título descriptivo claro","subject":"materia que mejor coincide de esta lista: Máquinas Eléctricas, Bombas & Fluidos, Logística, Gestión de Operaciones, Gestión de Proyectos, Seguridad Industrial, Estadística, Termodinámica, Otra","summary":"resumen claro y organizado del contenido (3-5 párrafos, conservá fórmulas y conceptos clave)","tags":["tag1","tag2","tag3"]}
+Analizá el contenido de este PDF llamado "${fileName}"${subjectHint?` que está en la carpeta "${subjectHint}"`:''}  y devolvé SOLO un JSON válido (sin markdown, sin explicación):
+{"title":"título descriptivo claro","subject":"nombre exacto de la materia — usá el nombre de la carpeta si está disponible, sino el que mejor coincida de: Máquinas Eléctricas, Bombas & Fluidos, Logística, Gestión de Operaciones, Gestión de Proyectos, Seguridad Industrial, Estadística, Termodinámica, Otra","summary":"resumen claro y organizado del contenido (3-5 párrafos, conservá fórmulas y conceptos clave)","tags":["tag1","tag2","tag3"]}
 
-Contenido del PDF:
+${subjectHint?`La carpeta se llama "${subjectHint}" — ese probablemente sea el nombre de la materia.\n`:''}Contenido del PDF:
 ${text.slice(0,4000)}`}]})});
   const d=await r.json();
   const raw=d.content?.[0]?.text||'{}';
   const parsed=JSON.parse(raw.replace(/```json|```/g,'').trim());
-  const matched=subjects.find(s=>s.name.toLowerCase().includes((parsed.subject||'').toLowerCase().slice(0,5)))||subjects[0];
+  const matched = subjectHint
+    ? (subjects.find(s=>s.name.toLowerCase()===subjectHint.toLowerCase())
+      || subjects.find(s=>subjectHint.toLowerCase().includes(s.name.toLowerCase().slice(0,5)))
+      || subjects.find(s=>s.name.toLowerCase().includes(subjectHint.toLowerCase().slice(0,5)))
+      || (() => { const ns={id:'s'+Date.now(),name:subjectHint,icon:'📚',color:'#6b7280'}; subjects.push(ns); persist(); return ns; })())
+    : (subjects.find(s=>s.name.toLowerCase().includes((parsed.subject||'').toLowerCase().slice(0,5)))||subjects[0]);
   const newNote={
     id:Date.now().toString(36)+Math.random().toString(36).slice(2),
     title:parsed.title||fileName.replace(/\.pdf$/i,''),
