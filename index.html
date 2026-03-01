@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ramiro's Cloud</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://accounts.google.com/gsi/client"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f6f5f0;--white:#ffffff;--border:#e8e4db;--border2:#ccc8be;
+  --text:#1c1a16;--muted:#7a7468;--muted2:#b0a99e;
+  --orange:#e05c2a;--orange-bg:#fff3ee;
+  --blue:#2563eb;--green:#16a34a;--purple:#7c3aed;
+  --shadow:0 2px 12px rgba(0,0,0,0.07);--shadow-lg:0 12px 40px rgba(0,0,0,0.13);
+}
+body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex}
+
+nav{width:252px;min-width:252px;background:var(--white);border-right:1px solid var(--border);display:flex;flex-direction:column;height:100vh;position:fixed;top:0;left:0;overflow-y:auto;z-index:60}
+.nav-logo{padding:26px 22px 18px;border-bottom:1px solid var(--border)}
+.nav-logo h1{font-family:'Lora',serif;font-size:1.25rem;font-weight:600;letter-spacing:-0.02em}
+.nav-logo h1 em{font-style:italic;color:var(--orange)}
+.nav-logo p{font-size:0.7rem;color:var(--muted);margin-top:3px}
+.nav-section{padding:14px 12px 6px}
+.nav-lbl{font-size:0.65rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2);padding:0 10px;margin-bottom:4px}
+.nitem{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:0.82rem;color:var(--muted);transition:all .15s;border:none;background:none;width:100%;text-align:left;font-family:'Sora',sans-serif}
+.nitem:hover{background:var(--bg);color:var(--text)}
+.nitem.active{background:var(--text);color:white}
+.nitem .ico{font-size:.95rem;width:20px;text-align:center}
+.nitem .badge{margin-left:auto;font-size:.68rem;background:rgba(0,0,0,.07);padding:2px 6px;border-radius:8px}
+.nitem.active .badge{background:rgba(255,255,255,.2)}
+.nav-add{margin:6px 12px 0;padding:7px 12px;border:1.5px dashed var(--border2);border-radius:8px;background:none;color:var(--muted2);font-size:.78rem;cursor:pointer;font-family:'Sora',sans-serif;transition:all .15s;width:calc(100% - 24px);text-align:left}
+.nav-add:hover{border-color:var(--text);color:var(--text)}
+.nav-drive{margin:auto 12px 16px;padding:12px 14px;background:var(--orange-bg);border:1.5px solid #f5c4ae;border-radius:10px}
+.nav-drive p{font-size:.72rem;color:var(--orange);font-weight:600;margin-bottom:4px}
+.nav-drive span{font-size:.7rem;color:var(--muted)}
+.connect-btn{display:block;width:100%;margin-top:8px;padding:7px;background:var(--orange);color:white;border:none;border-radius:7px;font-size:.75rem;font-weight:600;cursor:pointer;font-family:'Sora',sans-serif;transition:opacity .15s}
+.connect-btn:hover{opacity:.88}
+
+.main{margin-left:252px;flex:1;display:flex;flex-direction:column;min-height:100vh}
+.topbar{background:var(--white);border-bottom:1px solid var(--border);height:58px;display:flex;align-items:center;padding:0 36px;gap:14px;position:sticky;top:0;z-index:40}
+.search-wrap{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 14px;flex:1;max-width:400px}
+.search-wrap input{border:none;background:none;font-family:'Sora',sans-serif;font-size:.85rem;color:var(--text);outline:none;width:100%}
+.search-wrap input::placeholder{color:var(--muted2)}
+.topbar-right{margin-left:auto;display:flex;gap:9px;align-items:center}
+.btn{font-family:'Sora',sans-serif;font-size:.82rem;font-weight:600;padding:8px 16px;border-radius:8px;cursor:pointer;border:none;transition:all .15s}
+.btn-dark{background:var(--text);color:white}.btn-dark:hover{background:#2d2a24}
+.btn-orange{background:var(--orange);color:white}.btn-orange:hover{background:#c94e20}
+.btn-ghost{background:none;border:1.5px solid var(--border2);color:var(--text)}.btn-ghost:hover{border-color:var(--text)}
+.btn-sm{padding:6px 12px;font-size:.78rem}
+.content{padding:44px 40px;flex:1}
+
+.page-title{font-family:'Lora',serif;font-size:2.2rem;font-weight:600;letter-spacing:-.03em;margin-bottom:4px}
+.page-sub{font-size:.875rem;color:var(--muted);margin-bottom:36px}
+.stats-row{display:flex;gap:14px;margin-bottom:44px;flex-wrap:wrap}
+.stat-c{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:18px 22px;flex:1;min-width:110px}
+.stat-n{font-family:'Lora',serif;font-size:2rem;font-weight:600;line-height:1}
+.stat-l{font-size:.72rem;color:var(--muted);margin-top:5px}
+.sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.sec-title{font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+
+.subjects-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;margin-bottom:52px}
+.subj-card{background:var(--white);border:1px solid var(--border);border-radius:16px;overflow:hidden;cursor:pointer;transition:all .2s;position:relative}
+.subj-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg);border-color:transparent}
+.subj-banner{height:90px;display:flex;align-items:center;justify-content:center;font-size:2.6rem}
+.subj-body{padding:14px 16px 16px}
+.subj-name{font-size:.9rem;font-weight:700;margin-bottom:3px}
+.subj-meta{font-size:.75rem;color:var(--muted)}
+.subj-bar{height:3px;position:absolute;bottom:0;left:0;right:0}
+
+.notes-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:22px;flex-wrap:wrap}
+.tag-pill{display:inline-flex;align-items:center;gap:4px;background:var(--white);border:1.5px solid var(--border);border-radius:20px;padding:5px 11px;font-size:.75rem;color:var(--muted);cursor:pointer;font-family:'Sora',sans-serif;transition:all .15s}
+.tag-pill:hover,.tag-pill.on{border-color:var(--orange);color:var(--orange);background:var(--orange-bg)}
+.notes-list{display:flex;flex-direction:column;gap:6px}
+.note-row{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:15px 18px;display:flex;align-items:flex-start;gap:14px;cursor:pointer;transition:all .15s}
+.note-row:hover{border-color:var(--border2);box-shadow:var(--shadow)}
+.note-ico{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
+.note-body{flex:1;min-width:0}
+.note-title{font-size:.9rem;font-weight:600;margin-bottom:2px}
+.note-prev{font-size:.78rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.note-tags{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap}
+.ntag{font-size:.68rem;background:var(--bg);color:var(--muted);padding:2px 7px;border-radius:4px;font-family:monospace}
+.note-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}
+.note-date{font-size:.7rem;color:var(--muted2)}
+.note-actions{display:flex;gap:5px}
+.icon-btn{background:var(--bg);border:none;width:26px;height:26px;border-radius:6px;cursor:pointer;font-size:.8rem;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.icon-btn:hover{background:var(--border)}
+
+.note-detail{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:36px 40px}
+.nd-back{display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--muted);cursor:pointer;margin-bottom:24px;background:none;border:none;font-family:'Sora',sans-serif}
+.nd-back:hover{color:var(--text)}
+.nd-badge{display:inline-block;font-size:.72rem;font-weight:600;padding:4px 12px;border-radius:20px;margin-bottom:14px}
+.nd-title{font-family:'Lora',serif;font-size:2rem;font-weight:600;letter-spacing:-.02em;margin-bottom:8px}
+.nd-meta{font-size:.78rem;color:var(--muted);margin-bottom:28px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.nd-content{font-size:.9rem;line-height:1.9;color:#2a2720;white-space:pre-wrap;border-top:1px solid var(--border);padding-top:24px}
+
+.ai-panel{background:var(--white);border:1px solid var(--border);border-radius:16px;display:flex;flex-direction:column;height:calc(100vh - 160px);min-height:500px}
+.ai-header{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.ai-avatar{width:34px;height:34px;background:linear-gradient(135deg,#e05c2a,#f59e0b);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem}
+.ai-header h3{font-size:.875rem;font-weight:700}
+.ai-header p{font-size:.7rem;color:var(--muted)}
+.ai-scope{margin-left:auto}
+.ai-scope select{border:1.5px solid var(--border);border-radius:7px;padding:5px 10px;font-family:'Sora',sans-serif;font-size:.75rem;background:var(--bg);color:var(--text);outline:none}
+.chat-msgs{flex:1;overflow-y:auto;padding:22px;display:flex;flex-direction:column;gap:14px}
+.msg{display:flex;gap:9px;max-width:85%}
+.msg.user{align-self:flex-end;flex-direction:row-reverse}
+.bubble{padding:11px 15px;border-radius:14px;font-size:.855rem;line-height:1.65}
+.msg.ai .bubble{background:var(--bg);border:1px solid var(--border);border-radius:14px 14px 14px 4px}
+.msg.user .bubble{background:var(--text);color:white;border-radius:14px 14px 4px 14px}
+.mavatar{width:28px;height:28px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.82rem}
+.msg.ai .mavatar{background:linear-gradient(135deg,#e05c2a,#f59e0b)}
+.msg.user .mavatar{background:var(--border2)}
+.chat-input-row{padding:14px 18px;border-top:1px solid var(--border);display:flex;gap:9px;align-items:flex-end}
+.chat-ta{flex:1;border:1.5px solid var(--border);border-radius:10px;padding:10px 13px;font-family:'Sora',sans-serif;font-size:.855rem;resize:none;outline:none;max-height:120px;min-height:40px;background:var(--bg);color:var(--text);transition:border-color .15s}
+.chat-ta:focus{border-color:var(--orange)}
+.send-btn{background:var(--orange);border:none;width:38px;height:38px;border-radius:9px;cursor:pointer;font-size:.95rem;color:white;flex-shrink:0;transition:opacity .15s}
+.send-btn:hover{opacity:.85}.send-btn:disabled{opacity:.35;cursor:default}
+.sug-wrap{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.sug-q{background:var(--white);border:1.5px solid var(--border);border-radius:8px;padding:8px 13px;font-size:.78rem;cursor:pointer;text-align:left;font-family:'Sora',sans-serif;color:var(--text);transition:all .15s}
+.sug-q:hover{border-color:var(--orange);color:var(--orange)}
+
+.drive-setup{background:var(--white);border:1px solid var(--border);border-radius:16px;padding:44px;max-width:620px;margin:0 auto}
+.drive-setup h2{font-family:'Lora',serif;font-size:1.8rem;margin-bottom:8px}
+.drive-setup .intro{font-size:.875rem;color:var(--muted);margin-bottom:32px;line-height:1.7}
+.steps{display:flex;flex-direction:column}
+.step{display:flex;gap:16px;padding:18px 0;border-bottom:1px solid var(--border)}
+.step:last-of-type{border-bottom:none}
+.step-num{width:30px;height:30px;border-radius:50%;background:var(--text);color:white;font-size:.78rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.step h4{font-size:.875rem;font-weight:700;margin-bottom:4px}
+.step p{font-size:.8rem;color:var(--muted);line-height:1.6}
+.step a{color:var(--orange);text-decoration:none;font-weight:600}.step a:hover{text-decoration:underline}
+.cf{display:flex;flex-direction:column;gap:11px;margin-top:26px}
+.cf-lbl{font-size:.7rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.cf-in{width:100%;border:1.5px solid var(--border);border-radius:9px;padding:10px 13px;font-family:'Sora',sans-serif;font-size:.855rem;background:var(--bg);color:var(--text);outline:none;transition:border-color .15s}
+.cf-in:focus{border-color:var(--orange)}
+.cf-hint{font-size:.7rem;color:var(--muted2);margin-top:3px}
+
+.drive-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(195px,1fr));gap:12px}
+.drive-file{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:7px;transition:all .2s}
+.drive-file:hover{border-color:var(--border2);box-shadow:var(--shadow)}
+.df-ico{font-size:1.8rem}
+.df-name{font-size:.82rem;font-weight:600;word-break:break-word;line-height:1.3}
+.df-meta{font-size:.7rem;color:var(--muted)}
+.df-acts{display:flex;gap:6px;margin-top:4px}
+.df-acts a{text-decoration:none}
+
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .2s}
+.overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--white);border-radius:18px;padding:30px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;transform:translateY(16px);transition:transform .2s;display:flex;flex-direction:column;gap:14px}
+.overlay.open .modal{transform:translateY(0)}
+.modal h3{font-family:'Lora',serif;font-size:1.35rem}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:.7rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.field input,.field textarea,.field select{border:1.5px solid var(--border);border-radius:9px;padding:10px 13px;font-family:'Sora',sans-serif;font-size:.855rem;background:var(--bg);color:var(--text);outline:none;resize:vertical;transition:border-color .15s}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--orange)}
+.field textarea{min-height:120px}
+.modal-acts{display:flex;gap:9px;justify-content:flex-end;margin-top:4px}
+
+.loading-dots{display:inline-flex;gap:4px;align-items:center}
+.loading-dots span{width:5px;height:5px;background:var(--muted2);border-radius:50%;animation:dot .8s infinite}
+.loading-dots span:nth-child(2){animation-delay:.15s}
+.loading-dots span:nth-child(3){animation-delay:.3s}
+@keyframes dot{0%,80%,100%{transform:scale(1);opacity:.5}40%{transform:scale(1.3);opacity:1}}
+.empty{text-align:center;padding:70px 20px;color:var(--muted)}
+.empty .big{font-size:2.8rem;margin-bottom:10px;opacity:.3}
+.empty p{font-size:.875rem}
+.toast{position:fixed;bottom:26px;right:26px;background:var(--text);color:white;padding:11px 18px;border-radius:10px;font-size:.8rem;z-index:300;transform:translateY(60px);opacity:0;transition:all .3s;pointer-events:none;max-width:300px}
+.toast.show{transform:translateY(0);opacity:1}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">
+    <h1>Ramiro's <em>Cloud</em></h1>
+    <p>Ingeniería Industrial · UCA</p>
+  </div>
+  <div class="nav-section">
+    <div class="nav-lbl">Menu</div>
+    <button class="nitem active" id="btn-home" onclick="showView('home',this)"><span class="ico">🏠</span> Home</button>
+    <button class="nitem" id="btn-ai" onclick="showView('ai',this)"><span class="ico">🤖</span> Ask AI <span class="badge">NEW</span></button>
+    <button class="nitem" id="btn-drive" onclick="showView('drive',this)"><span class="ico">📁</span> Google Drive</button>
+  </div>
+  <div class="nav-section">
+    <div class="nav-lbl">Subjects</div>
+    <div id="navSubjects"></div>
+    <button class="nav-add" onclick="openAddSubject()">+ Add subject</button>
+  </div>
+  <div class="nav-drive">
+    <p>📁 Google Drive</p>
+    <span id="driveStatusText">Not connected</span>
+    <button class="connect-btn" onclick="showView('drive',document.getElementById('btn-drive'))">Connect →</button>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="topbar">
+    <div class="search-wrap">
+      <span>🔍</span>
+      <input type="text" id="searchInput" placeholder="Search notes, topics, formulas…" oninput="onSearch()">
+    </div>
+    <div class="topbar-right">
+      <button class="btn btn-ghost btn-sm" onclick="openAddSubject()">+ Subject</button>
+      <button class="btn btn-orange btn-sm" onclick="openNoteModal()">+ New Note</button>
+    </div>
+  </div>
+  <div class="content" id="content"></div>
+</div>
+
+<!-- Note Modal -->
+<div class="overlay" id="noteOverlay" onclick="closeOnBg(event,'noteOverlay')">
+  <div class="modal">
+    <h3 id="noteModalTitle">New Note</h3>
+    <div class="field"><label>Title</label><input id="mTitle" placeholder="e.g. Centrifugal Pumps — Curves & Types"></div>
+    <div class="field"><label>Subject</label><select id="mSubject"></select></div>
+    <div class="field"><label>Content</label><textarea id="mContent" placeholder="Paste or type your notes here…"></textarea></div>
+    <div class="field"><label>Tags (comma separated)</label><input id="mTags" placeholder="e.g. exam, chapter2, formulas"></div>
+    <div class="modal-acts">
+      <button class="btn btn-ghost" onclick="closeModal('noteOverlay')">Cancel</button>
+      <button class="btn btn-dark" onclick="saveNote()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Subject Modal -->
+<div class="overlay" id="subjOverlay" onclick="closeOnBg(event,'subjOverlay')">
+  <div class="modal">
+    <h3>New Subject</h3>
+    <div class="field"><label>Name</label><input id="sName" placeholder="e.g. Fluid Mechanics"></div>
+    <div class="field"><label>Icon (emoji)</label><input id="sIcon" placeholder="⚙️" maxlength="4"></div>
+    <div class="field"><label>Color accent</label>
+      <select id="sColor">
+        <option value="#e05c2a">🟠 Orange</option>
+        <option value="#2563eb">🔵 Blue</option>
+        <option value="#16a34a">🟢 Green</option>
+        <option value="#7c3aed">🟣 Purple</option>
+        <option value="#db2777">🩷 Pink</option>
+        <option value="#d97706">🟡 Amber</option>
+        <option value="#0891b2">🩵 Cyan</option>
+        <option value="#be123c">🔴 Red</option>
+      </select>
+    </div>
+    <div class="modal-acts">
+      <button class="btn btn-ghost" onclick="closeModal('subjOverlay')">Cancel</button>
+      <button class="btn btn-dark" onclick="saveSubject()">Create</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────
+let notes    = JSON.parse(localStorage.getItem('sv2_notes') || '[]');
+let subjects = JSON.parse(localStorage.getItem('sv2_subjects') || 'null') || [
+  {id:'s1',name:'Máquinas Eléctricas',   icon:'⚡',color:'#e05c2a'},
+  {id:'s2',name:'Bombas & Fluidos',       icon:'💧',color:'#2563eb'},
+  {id:'s3',name:'Logística',             icon:'🚛',color:'#16a34a'},
+  {id:'s4',name:'Gestión de Operaciones',icon:'📊',color:'#7c3aed'},
+  {id:'s5',name:'Gestión de Proyectos',  icon:'📋',color:'#db2777'},
+  {id:'s6',name:'Seguridad Industrial',  icon:'🦺',color:'#d97706'},
+  {id:'s7',name:'Estadística',           icon:'📈',color:'#0891b2'},
+  {id:'s8',name:'Termodinámica',         icon:'🔥',color:'#be123c'},
+];
+let driveConfig   = JSON.parse(localStorage.getItem('sv2_drive') || 'null');
+const OAUTH_CLIENT_ID = '979073035285-4sj1omts1sp5tk2n8vkp4bkn22gpam6c.apps.googleusercontent.com';
+let oauthToken = localStorage.getItem('sv2_gtoken') || null;
+let currentView   = 'home';
+let currentSubjId = null;
+let editNoteId    = null;
+let activeTag     = null;
+let chatHistory   = [];
+let notesContext  = '';
+let msgId = 0;
+
+function persist(){
+  localStorage.setItem('sv2_notes', JSON.stringify(notes));
+  localStorage.setItem('sv2_subjects', JSON.stringify(subjects));
+}
+
+// ── ROUTING ────────────────────────────────────────────────
+function showView(v, btn){
+  currentView=v; currentSubjId=null; activeTag=null;
+  document.querySelectorAll('.nitem').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderAll();
+}
+function showSubject(id){
+  currentView='subject'; currentSubjId=id; activeTag=null;
+  document.querySelectorAll('.nitem').forEach(b=>b.classList.remove('active'));
+  document.querySelector(`[data-sid="${id}"]`)?.classList.add('active');
+  renderAll();
+}
+function openNoteDetail(id){
+  editNoteId=id; currentView='notedetail'; renderAll();
+}
+
+// ── RENDER ─────────────────────────────────────────────────
+function renderAll(){
+  renderNav();
+  const c = document.getElementById('content');
+  if(currentView==='home')       c.innerHTML = homeHTML();
+  else if(currentView==='subject')    c.innerHTML = subjectHTML();
+  else if(currentView==='notedetail') c.innerHTML = noteDetailHTML();
+  else if(currentView==='ai'){         c.innerHTML = aiHTML(); initAI(); }
+  else if(currentView==='drive'){      c.innerHTML = driveHTML(); if(driveConfig) setTimeout(loadDriveFiles,80); }
+}
+
+function renderNav(){
+  document.getElementById('navSubjects').innerHTML = subjects.map(s=>`
+    <button class="nitem" data-sid="${s.id}" onclick="showSubject('${s.id}')">
+      <span class="ico">${s.icon}</span>${s.name}
+      <span class="badge">${notes.filter(n=>n.subject===s.id).length}</span>
+    </button>`).join('');
+  if(currentSubjId) document.querySelector(`[data-sid="${currentSubjId}"]`)?.classList.add('active');
+  document.getElementById('driveStatusText').textContent = oauthToken ? 'Conectado ✓' : 'No conectado';
+}
+
+// ── HOME ───────────────────────────────────────────────────
+function homeHTML(){
+  const recent = [...notes].reverse().slice(0,4);
+  const allTags = new Set(notes.flatMap(n=>n.tags)).size;
+  const thisWeek = notes.filter(n=>Date.now()-new Date(n.date)<6048e5).length;
+  return `
+  <div class="page-title">Bienvenido 👋</div>
+  <div class="page-sub">5to año · Ingeniería Industrial · UCA Buenos Aires</div>
+  <div class="stats-row">
+    <div class="stat-c"><div class="stat-n">${notes.length}</div><div class="stat-l">Notas totales</div></div>
+    <div class="stat-c"><div class="stat-n">${subjects.length}</div><div class="stat-l">Materias</div></div>
+    <div class="stat-c"><div class="stat-n">${allTags}</div><div class="stat-l">Tags</div></div>
+    <div class="stat-c"><div class="stat-n">${thisWeek}</div><div class="stat-l">Esta semana</div></div>
+  </div>
+  <div class="sec-head"><span class="sec-title">Tus Materias</span></div>
+  <div class="subjects-grid">
+    ${subjects.map(s=>{
+      const cnt=notes.filter(n=>n.subject===s.id).length;
+      return `<div class="subj-card" onclick="showSubject('${s.id}')">
+        <div class="subj-banner" style="background:${lite(s.color)}">${s.icon}</div>
+        <div class="subj-body"><div class="subj-name">${s.name}</div><div class="subj-meta">${cnt} nota${cnt!==1?'s':''}</div></div>
+        <div class="subj-bar" style="background:${s.color}"></div>
+      </div>`;
+    }).join('')}
+    <div class="subj-card" onclick="openAddSubject()">
+      <div class="subj-banner" style="background:#f0ede6;border:2px dashed var(--border2)">➕</div>
+      <div class="subj-body"><div class="subj-name" style="color:var(--muted)">Agregar materia</div></div>
+    </div>
+  </div>
+  ${recent.length?`<div class="sec-head"><span class="sec-title">Notas recientes</span></div><div class="notes-list">${recent.map(noteRowHTML).join('')}</div>`:''}`;
+}
+
+// ── SUBJECT VIEW ───────────────────────────────────────────
+function subjectHTML(){
+  const s = subjects.find(x=>x.id===currentSubjId);
+  if(!s) return '<div class="empty"><div class="big">🔍</div><p>Materia no encontrada.</p></div>';
+  const all = notes.filter(n=>n.subject===s.id);
+  const allTags = [...new Set(all.flatMap(n=>n.tags))].filter(Boolean);
+  const filtered = getFiltered();
+  return `
+  <div style="display:flex;align-items:center;gap:14px;margin-bottom:28px">
+    <div style="width:52px;height:52px;border-radius:14px;background:${lite(s.color)};display:flex;align-items:center;justify-content:center;font-size:1.7rem;border:1px solid ${s.color}33">${s.icon}</div>
+    <div>
+      <div class="page-title" style="font-size:1.65rem;margin-bottom:0">${s.name}</div>
+      <div class="page-sub" style="margin-bottom:0">${all.length} nota${all.length!==1?'s':''}</div>
+    </div>
+    <div style="margin-left:auto;display:flex;gap:8px">
+      <button class="btn btn-ghost btn-sm" onclick="goAIFor('${s.name}')">🤖 Ask AI</button>
+      <button class="btn btn-orange btn-sm" onclick="openNoteModal('${s.id}')">+ Nota</button>
+    </div>
+  </div>
+  <div class="notes-toolbar">
+    ${allTags.map(t=>`<button class="tag-pill${activeTag===t?' on':''}" onclick="toggleTag('${t}')">#${t}</button>`).join('')}
+  </div>
+  <div class="notes-list" id="notesList">
+    ${filtered.length ? filtered.map(noteRowHTML).join('') : '<div class="empty"><div class="big">📝</div><p>No hay notas aún. ¡Agregá la primera!</p></div>'}
+  </div>`;
+}
+
+function onSearch(){ if(currentView==='subject'){ const l=document.getElementById('notesList'); if(l) l.innerHTML=getFiltered().map(noteRowHTML).join('')||'<div class="empty"><p>Sin resultados.</p></div>'; } }
+function toggleTag(t){ activeTag=activeTag===t?null:t; renderAll(); }
+
+function getFiltered(){
+  const q=(document.getElementById('searchInput')?.value||'').toLowerCase();
+  return notes.filter(n=>{
+    if(currentSubjId && n.subject!==currentSubjId) return false;
+    if(activeTag && !n.tags.includes(activeTag)) return false;
+    if(q&&!(n.title.toLowerCase().includes(q)||n.content.toLowerCase().includes(q)||n.tags.some(t=>t.includes(q)))) return false;
+    return true;
+  }).reverse();
+}
+
+function noteRowHTML(n){
+  const s=subjects.find(x=>x.id===n.subject);
+  return `<div class="note-row" onclick="openNoteDetail('${n.id}')">
+    <div class="note-ico" style="background:${s?lite(s.color):'#f0ede6'}">${s?s.icon:'📄'}</div>
+    <div class="note-body">
+      <div class="note-title">${n.title}</div>
+      <div class="note-prev">${n.content.slice(0,110)}…</div>
+      ${n.tags.length?`<div class="note-tags">${n.tags.map(t=>`<span class="ntag">#${t}</span>`).join('')}</div>`:''}
+    </div>
+    <div class="note-right">
+      <div class="note-date">${fmtDate(n.date)}</div>
+      <div class="note-actions">
+        <button class="icon-btn" onclick="event.stopPropagation();openNoteModal(null,'${n.id}')">✏️</button>
+        <button class="icon-btn" onclick="event.stopPropagation();deleteNote('${n.id}')">🗑</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── NOTE DETAIL ────────────────────────────────────────────
+function noteDetailHTML(){
+  const n=notes.find(x=>x.id===editNoteId); if(!n) return '';
+  const s=subjects.find(x=>x.id===n.subject);
+  return `
+  <button class="nd-back" onclick="currentView='subject';renderAll()">← Volver a ${s?s.name:'Notas'}</button>
+  <div class="note-detail">
+    ${s?`<span class="nd-badge" style="background:${lite(s.color)};color:${s.color}">${s.icon} ${s.name}</span>`:''}
+    <div class="nd-title">${n.title}</div>
+    <div class="nd-meta">
+      <span>📅 ${fmtDate(n.date)}</span>
+      ${n.tags.map(t=>`<span class="ntag">#${t}</span>`).join('')}
+      <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="goAINote('${n.id}')">🤖 Ask AI about this</button>
+      <button class="btn btn-ghost btn-sm" onclick="openNoteModal(null,'${n.id}')">✏️ Edit</button>
+    </div>
+    <div class="nd-content">${n.content}</div>
+  </div>`;
+}
+
+// ── AI CHAT ────────────────────────────────────────────────
+function aiHTML(){
+  return `
+  <div class="page-title" style="margin-bottom:4px">Ask AI 🤖</div>
+  <div class="page-sub" style="margin-bottom:22px">Preguntale a tu asistente sobre tus notas. Pide resúmenes, busca conceptos, prepará exámenes.</div>
+  <div class="ai-panel">
+    <div class="ai-header">
+      <div class="ai-avatar">🤖</div>
+      <div><h3>Ramiro's Cloud AI</h3><p>Conoce todas tus notas · Powered by Claude</p></div>
+      <div class="ai-scope">
+        <select id="aiScope" onchange="rebuildCtx()">
+          <option value="all">📚 Todas las materias</option>
+          ${subjects.map(s=>`<option value="${s.id}">${s.icon} ${s.name}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="chat-msgs" id="chatMsgs">
+      <div class="msg ai">
+        <div class="mavatar">🤖</div>
+        <div>
+          <div class="bubble">¡Hola! Soy tu asistente de estudio. Tengo acceso a todas tus ${notes.length} notas en ${subjects.length} materias.<br><br>Podés pedirme que resuma un tema, encuentre información específica, explique un concepto o te ayude a preparar un examen. ¿En qué te ayudo?</div>
+          <div class="sug-wrap">
+            ${['📚 Resumí todas mis notas de Máquinas Eléctricas','🔍 Encontrá todo lo que tengo sobre bombas centrífugas','📝 ¿Qué temas de Logística debería repasar?','📊 Hacé un plan de estudio basado en mis notas','⚡ Explicame los conceptos principales de motores AC'].map(q=>
+              `<button class="sug-q" onclick="pickSug(this,'${q.replace(/'/g,"\\'")}')">${q}</button>`).join('')}
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="chat-input-row">
+      <textarea class="chat-ta" id="chatIn" placeholder="Preguntá sobre tus notas…" rows="1" onkeydown="chatKey(event)" oninput="autoH(this)"></textarea>
+      <button class="send-btn" id="sendBtn" onclick="sendChat()">↑</button>
+    </div>
+  </div>`;
+}
+
+function initAI(){ rebuildCtx(); }
+
+function rebuildCtx(){
+  const scope=document.getElementById('aiScope')?.value||'all';
+  const scoped=scope==='all'?notes:notes.filter(n=>n.subject===scope);
+  notesContext=scoped.map(n=>{
+    const s=subjects.find(x=>x.id===n.subject);
+    return `[${s?s.name:'?'}] ${n.title}\nTags: ${n.tags.join(', ')}\n${n.content}`;
+  }).join('\n\n---\n\n');
+}
+
+function pickSug(btn,q){ btn.closest('.sug-wrap')?.remove(); sendChat(q); }
+function chatKey(e){ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat();} }
+function autoH(el){ el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,120)+'px'; }
+
+async function sendChat(override){
+  const inp=document.getElementById('chatIn');
+  const msg=override||inp?.value.trim(); if(!msg) return;
+  if(inp){inp.value='';inp.style.height='auto';}
+  document.getElementById('sendBtn').disabled=true;
+  appendBubble('user',msg);
+  const lid=appendBubble('ai','<div class="loading-dots"><span></span><span></span><span></span></div>');
+  chatHistory.push({role:'user',content:msg});
+  const sys=`Sos un asistente de estudio para un estudiante de 5to año de Ingeniería Industrial en UCA Buenos Aires.
+Tenés acceso a sus notas. Respondé en el mismo idioma que el usuario (español o inglés).
+Cuando resumís, sé detallado y claro. Cuando encontrás info, citá las partes relevantes.
+
+NOTAS DEL ESTUDIANTE:
+${notesContext||'(Sin notas aún — decile al estudiante que agregue notas primero)'}`;
+  try {
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:sys,messages:chatHistory})});
+    const d=await r.json();
+    const reply=d.content?.[0]?.text||'Algo salió mal.';
+    chatHistory.push({role:'assistant',content:reply});
+    updateBubble(lid,reply.replace(/\n/g,'<br>'));
+  } catch(e){ updateBubble(lid,'⚠️ No se pudo conectar con la IA.'); }
+  document.getElementById('sendBtn').disabled=false;
+}
+
+function appendBubble(role,html){
+  const id='m'+(++msgId);
+  const wrap=document.getElementById('chatMsgs');
+  const d=document.createElement('div');
+  d.className=`msg ${role}`;d.id=id;
+  d.innerHTML=`<div class="mavatar">${role==='ai'?'🤖':'👤'}</div><div class="bubble">${html}</div>`;
+  wrap.appendChild(d);wrap.scrollTop=wrap.scrollHeight;return id;
+}
+function updateBubble(id,html){
+  const el=document.getElementById(id);
+  if(el) el.querySelector('.bubble').innerHTML=html;
+  document.getElementById('chatMsgs').scrollTop=99999;
+}
+
+function goAIFor(name){
+  currentView='ai';document.querySelectorAll('.nitem').forEach(b=>b.classList.remove('active'));
+  document.getElementById('btn-ai').classList.add('active');
+  renderAll();setTimeout(()=>sendChat(`Resumí todas mis notas de ${name}`),300);
+}
+function goAINote(id){
+  const n=notes.find(x=>x.id===id);
+  currentView='ai';renderAll();
+  setTimeout(()=>sendChat(`Explicame más sobre "${n.title}" y ayudame a entenderlo mejor basándote en mis notas`),300);
+}
+
+// ── GOOGLE DRIVE ───────────────────────────────────────────
+function driveHTML(){
+  if(!oauthToken) return driveSetupHTML();
+  return `
+  <div style="display:flex;align-items:center;gap:14px;margin-bottom:28px">
+    <div class="page-title" style="font-size:1.65rem;margin-bottom:0">Google Drive 📁</div>
+    <div style="margin-left:auto;display:flex;gap:8px">
+      <button class="btn btn-ghost btn-sm" onclick="disconnectDrive()">Desconectar</button>
+      <button class="btn btn-orange btn-sm" onclick="loadDriveFiles()">🔄 Actualizar</button>
+    </div>
+  </div>
+  ${!driveConfig?.folderId ? `
+  <div style="background:var(--orange-bg);border:1.5px solid #f5c4ae;border-radius:12px;padding:18px 22px;margin-bottom:24px;display:flex;align-items:center;gap:16px">
+    <div style="font-size:1.4rem">📂</div>
+    <div style="flex:1">
+      <div style="font-size:.875rem;font-weight:600;margin-bottom:4px">¿En qué carpeta están tus notas?</div>
+      <div style="font-size:.78rem;color:var(--muted);margin-bottom:10px">Pegá el ID de tu carpeta de GoodNotes en Google Drive. Lo encontrás en la URL: drive.google.com/drive/folders/<b>ESTE_ID</b></div>
+      <div style="display:flex;gap:8px">
+        <input class="cf-in" id="folderInput" placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms" style="flex:1;margin:0">
+        <button class="btn btn-dark btn-sm" onclick="saveFolderId()">Guardar</button>
+      </div>
+    </div>
+  </div>` : ''}
+  <div id="driveArea"><div class="empty"><div class="big">📁</div><p>Cargando tus archivos…</p></div></div>`;
+}
+
+function driveSetupHTML(){
+  return `
+  <div class="drive-setup">
+    <h2>Conectar Google Drive 📁</h2>
+    <p class="intro">Iniciá sesión con tu cuenta de Google para acceder a tus PDFs de GoodNotes directamente desde Drive. Solo tenés que hacerlo una vez.</p>
+
+    <div style="text-align:center;padding:32px 0 20px">
+      <div style="font-size:3.5rem;margin-bottom:16px">📁</div>
+      <p style="font-size:.9rem;color:var(--muted);margin-bottom:28px;line-height:1.6">Al conectar tu Drive, Ramiro's Cloud va a poder leer tus PDFs de GoodNotes, organizarlos con IA y mantenerlos actualizados automáticamente.</p>
+      <button class="btn btn-dark" style="font-size:.95rem;padding:12px 28px;display:inline-flex;align-items:center;gap:10px" onclick="signInWithGoogle()">
+        <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#fff" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#fff" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#fff" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#fff" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        Iniciar sesión con Google
+      </button>
+    </div>
+
+    <div style="border-top:1px solid var(--border);padding-top:20px;margin-top:8px">
+      <p style="font-size:.75rem;color:var(--muted2);text-align:center">Solo se accede a tus archivos de Drive. Ramiro's Cloud no almacena ni comparte tus datos.</p>
+    </div>
+  </div>`;
+}
+
+function signInWithGoogle(){
+  if(typeof google === 'undefined'){
+    toast('Cargando librería de Google… intentá en 2 segundos');
+    const s=document.createElement('script');
+    s.src='https://accounts.google.com/gsi/client';
+    s.onload=()=>{ toast('¡Listo! Apretá el botón de nuevo.'); };
+    document.head.appendChild(s);
+    return;
+  }
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: OAUTH_CLIENT_ID,
+    scope: 'https://www.googleapis.com/auth/drive.readonly',
+    callback: (resp) => {
+      if(resp.access_token){
+        oauthToken = resp.access_token;
+        localStorage.setItem('sv2_gtoken', oauthToken);
+        toast('✓ Conectado con Google!');
+        renderAll();
+        setTimeout(loadDriveFiles, 200);
+      } else {
+        toast('⚠️ No se pudo conectar. Intentá de nuevo.');
+      }
+    }
+  });
+  client.requestAccessToken();
+}
+
+function disconnectDrive(){
+  oauthToken=null; driveConfig=null;
+  localStorage.removeItem('sv2_gtoken');
+  localStorage.removeItem('sv2_drive');
+  renderAll();
+  toast('Drive desconectado');
+}
+
+function saveFolderId(){
+  const id=document.getElementById('folderInput')?.value.trim();
+  if(!id){toast('Pegá el ID de la carpeta');return;}
+  driveConfig={folderId:id};
+  localStorage.setItem('sv2_drive',JSON.stringify(driveConfig));
+  toast('Carpeta guardada. Cargando…');
+  renderAll();
+  setTimeout(loadDriveFiles,200);
+}
+
+async function loadDriveFiles(){
+  const area=document.getElementById('driveArea'); if(!area||!oauthToken) return;
+  if(!driveConfig?.folderId){ area.innerHTML='<div class="empty"><div class="big">📂</div><p>Primero ingresá el ID de tu carpeta arriba.</p></div>'; return; }
+  try {
+    const folderId=driveConfig.folderId;
+    const r=await fetch(`https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+trashed=false&fields=files(id,name,mimeType,modifiedTime)&orderBy=name`,
+      {headers:{Authorization:`Bearer ${oauthToken}`}});
+    const d=await r.json();
+    if(d.error){ if(d.error.code===401){oauthToken=null;localStorage.removeItem('sv2_gtoken');renderAll();return;} throw new Error(d.error.message); }
+    const pdfs=d.files.filter(f=>f.mimeType==='application/pdf'||f.name.endsWith('.pdf'));
+    if(!pdfs.length){area.innerHTML='<div class="empty"><div class="big">📂</div><p>No se encontraron PDFs. Asegurate de exportar tus notas desde GoodNotes a esta carpeta.</p></div>';return;}
+    area.innerHTML=`
+    <div class="sec-head"><span class="sec-title">${pdfs.length} PDF${pdfs.length!==1?'s':''} en tu carpeta de Drive</span><button class="btn btn-orange btn-sm" onclick="importAll()">🤖 Importar todos con IA</button></div>
+    <div class="drive-grid" id="driveGrid">
+      ${pdfs.map(f=>`<div class="drive-file" id="df-${f.id}">
+        <div class="df-ico">📄</div>
+        <div class="df-name">${f.name.replace(/\.pdf$/i,'')}</div>
+        <div class="df-meta">${fmtDate(f.modifiedTime)}</div>
+        <div class="df-acts">
+          <button class="btn btn-ghost btn-sm" style="flex:1" onclick="importOne('${f.id}','${f.name.replace(/'/g,"\\'")}','${f.id}')">🤖 Importar</button>
+          <a href="https://drive.google.com/file/d/${f.id}/view" target="_blank" class="btn btn-ghost btn-sm">👁</a>
+        </div>
+      </div>`).join('')}
+    </div>
+    <p style="font-size:.78rem;color:var(--muted);margin-top:16px">La IA va a leer cada PDF y crear notas organizadas automáticamente. Los PDFs manuscritos (fotos) también funcionan pero con menos precisión.</p>`;
+    window._driveFiles = pdfs;
+  } catch(e){
+    area.innerHTML=`<div class="empty"><div class="big">⚠️</div><p>Error: ${e.message}<br><br><button class="btn btn-ghost btn-sm" onclick="driveConfig=null;localStorage.removeItem('sv2_drive');renderAll()">Reconfigurar Drive</button></p></div>`;
+  }
+}
+
+async function importOne(fileId, fileName, cardId){
+  const card=document.getElementById('df-'+cardId);
+  if(card) card.style.opacity='.5';
+  toast(`Leyendo ${fileName.replace(/\.pdf$/i,'')}…`);
+  try {
+    pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    const r=await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+      {headers:{Authorization:`Bearer ${oauthToken}`}});
+    const ab=await (await r.blob()).arrayBuffer();
+    const pdf=await pdfjsLib.getDocument({data:ab}).promise;
+    let txt='';
+    for(let i=1;i<=Math.min(pdf.numPages,25);i++){
+      const pg=await pdf.getPage(i);
+      const tc=await pg.getTextContent();
+      txt+=tc.items.map(it=>it.str).join(' ')+'\n';
+    }
+    if(!txt.trim()) txt=`[PDF manuscrito: ${fileName}]`;
+    await aiCreateNote(txt, fileName);
+    if(card){card.style.opacity='1';card.style.background='#f0fff4';card.style.borderColor='var(--green)';}
+  } catch(e){ toast('⚠️ Error: '+e.message); if(card) card.style.opacity='1'; }
+}
+
+async function importAll(){
+  const files=window._driveFiles||[];
+  if(!files.length){toast('No hay archivos cargados');return;}
+  toast(`Importando ${files.length} archivos… esto puede tardar un minuto`);
+  for(const f of files){
+    await importOne(f.id,f.name,f.id);
+    await new Promise(res=>setTimeout(res,600));
+  }
+  toast(`✓ ¡${files.length} archivos importados!`);
+  renderNav();
+}
+
+async function aiCreateNote(text, fileName){
+  const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',
+      content:`Sos un asistente organizador de notas para un estudiante de Ingeniería Industrial (UCA Buenos Aires, 5to año).
+
+Analizá el contenido de este PDF llamado "${fileName}" y devolvé SOLO un JSON válido (sin markdown, sin explicación):
+{"title":"título descriptivo claro","subject":"materia que mejor coincide de esta lista: Máquinas Eléctricas, Bombas & Fluidos, Logística, Gestión de Operaciones, Gestión de Proyectos, Seguridad Industrial, Estadística, Termodinámica, Otra","summary":"resumen claro y organizado del contenido (3-5 párrafos, conservá fórmulas y conceptos clave)","tags":["tag1","tag2","tag3"]}
+
+Contenido del PDF:
+${text.slice(0,4000)}`}]})});
+  const d=await r.json();
+  const raw=d.content?.[0]?.text||'{}';
+  const parsed=JSON.parse(raw.replace(/```json|```/g,'').trim());
+  const matched=subjects.find(s=>s.name.toLowerCase().includes((parsed.subject||'').toLowerCase().slice(0,5)))||subjects[0];
+  const newNote={
+    id:Date.now().toString(36)+Math.random().toString(36).slice(2),
+    title:parsed.title||fileName.replace(/\.pdf$/i,''),
+    subject:matched.id,
+    content:parsed.summary||text.slice(0,2000),
+    tags:(parsed.tags||[]).map(t=>t.toLowerCase()),
+    date:new Date().toISOString(),
+    fromDrive:true
+  };
+  notes.push(newNote); persist();
+  toast(`✓ "${newNote.title}" importada!`);
+  renderNav();
+}
+
+// ── NOTE MODAL ─────────────────────────────────────────────
+function openNoteModal(subjId, noteId){
+  editNoteId=noteId||null;
+  const n=noteId?notes.find(x=>x.id===noteId):null;
+  document.getElementById('noteModalTitle').textContent=n?'Editar Nota':'Nueva Nota';
+  document.getElementById('mTitle').value=n?.title||'';
+  document.getElementById('mContent').value=n?.content||'';
+  document.getElementById('mTags').value=n?.tags?.join(', ')||'';
+  const sel=document.getElementById('mSubject');
+  const active=n?.subject||subjId||currentSubjId||subjects[0]?.id;
+  sel.innerHTML=subjects.map(s=>`<option value="${s.id}"${active===s.id?' selected':''}>${s.icon} ${s.name}</option>`).join('');
+  openOv('noteOverlay');
+}
+
+function saveNote(){
+  const title=document.getElementById('mTitle').value.trim();
+  if(!title){document.getElementById('mTitle').style.borderColor='var(--orange)';return;}
+  const n={
+    id:editNoteId||(Date.now().toString(36)+Math.random().toString(36).slice(2)),
+    title,
+    subject:document.getElementById('mSubject').value,
+    content:document.getElementById('mContent').value.trim(),
+    tags:document.getElementById('mTags').value.split(',').map(t=>t.trim().toLowerCase()).filter(Boolean),
+    date:editNoteId?notes.find(x=>x.id===editNoteId)?.date:new Date().toISOString()
+  };
+  if(editNoteId) notes=notes.map(x=>x.id===editNoteId?n:x); else notes.push(n);
+  persist(); closeModal('noteOverlay');
+  currentSubjId=n.subject; currentView='subject'; renderAll();
+  toast('Nota guardada ✓');
+}
+
+function deleteNote(id){
+  if(!confirm('¿Eliminar esta nota?')) return;
+  notes=notes.filter(n=>n.id!==id); persist(); renderAll(); toast('Nota eliminada');
+}
+
+// ── SUBJECT MODAL ──────────────────────────────────────────
+function openAddSubject(){document.getElementById('sName').value='';document.getElementById('sIcon').value='';openOv('subjOverlay');}
+function saveSubject(){
+  const name=document.getElementById('sName').value.trim(); if(!name) return;
+  subjects.push({id:'s'+Date.now(),name,icon:document.getElementById('sIcon').value||'📚',color:document.getElementById('sColor').value});
+  persist(); closeModal('subjOverlay'); renderAll(); toast('Materia creada ✓');
+}
+
+// ── UTILS ──────────────────────────────────────────────────
+function openOv(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+function closeOnBg(e,id){if(e.target.id===id)closeModal(id);}
+function lite(hex){const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return `rgba(${r},${g},${b},0.12)`;}
+function fmtDate(d){return new Date(d).toLocaleDateString('es-AR',{day:'numeric',month:'short',year:'numeric'});}
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),3200);}
+
+// ── SEED ───────────────────────────────────────────────────
+if(!notes.length){
+  notes=[{id:'demo1',title:'¡Bienvenido a Ramiro\'s Cloud!',subject:'s1',
+    content:'Esta es tu bóveda de notas para Ingeniería Industrial en UCA.\n\n📁 Conectá tu Google Drive en la pestaña "Google Drive" para importar tus PDFs de GoodNotes automáticamente.\n\n🤖 Usá el chat de IA para hacer preguntas sobre tus notas, pedir resúmenes y estudiar más eficientemente.\n\n✏️ También podés agregar notas manualmente con el botón "+ New Note".',
+    tags:['guía','intro'],date:new Date().toISOString()}];
+  persist();
+}
+
+renderAll();
+</script>
+</body>
+</html>
